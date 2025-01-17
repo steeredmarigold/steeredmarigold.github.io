@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="TODO">
+  <meta name="keywords" content="SteeredMarigold, Depth Completion, Depth Estimation, Diffusion">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steered Marigold</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [
+          ["$", "$"],
+          ["\\(", "\\)"],
+        ],
+      },
+      svg: {
+        fontCache: "global",
+      },
+    };
+  </script>
+  <script type="text/javascript" id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">SteeredMarigold: Steering Diffusion Towards Depth Completion of Largely Incomplete Depth Maps</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://github.com/jakubgregorek">Jakub Gregorek</a>,
+            </span>
+            <span class="author-block">
+              <a href="https://lanalpa.github.io">Lazaros Nalpantidis</a>
+            </span>
+          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">Technical University of Denmark (DTU)</span>
+          </div>
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://arxiv.org/pdf/2409.10202"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                  </span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2409.10202"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://github.com/DTU-PAS/steered-marigold" 
+                class="external-link button is-normal is-rounded is-dark">
+                <span class="icon">
+                  <i class="fab fa-github"></i>
+                </span>
+                <span>Code</span>
+              </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Even if the depth maps captured by RGB-D sensors deployed in real environments are often 
+            characterized by large areas missing valid depth measurements, the vast majority of depth 
+            completion methods still assumes depth values covering all areas of the scene. To address 
+            this limitation, we introduce SteeredMarigold, a training-free, zero-shot depth completion 
+            method capable of producing metric dense depth, even for largely incomplete depth maps. 
+            SteeredMarigold achieves this by using the available sparse depth points as conditions 
+            to steer a denoising diffusion probabilistic model. Our method outperforms relevant 
+            top-performing methods on the NYUv2 dataset, in tests where no depth was provided for 
+            a large area, achieving state-of-art performance and exhibiting remarkable robustness 
+            against depth map incompleteness. Our code will be publicly available.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3 has-text-centered">Method</h2>
+        <div class="content has-text-justified">
+          <p>
+            The method runs Marigold, the diffusion-based monocular depth estimator, in 50 DDPM iterations.
+            The noisy sample is updated between the iterations moving the final prediction close to the 
+            provided sparse depth condition. After each time step $t$, we estimate a clean data 
+            sample $\hat{x}_0$ and, together with the condition, we use it to compute the direction 
+            in which we update the noisy sample $x_{t-1}$. It is not possible to interpret 
+            $\hat{x}_0$ in the latent space, thus it must be decoded by the decoder $\mathcal{D}$. 
+            Consequently, we align scales of the depth condition and decoded $\hat{x}_0$ and move the depth 
+            estimate closer to the provided condition. Moving the depth utilizes linear interpolation of points
+            sampled from the depth estimate as well as the condition. The moved depth estimate is then encoded 
+            by $\mathcal{E}$ back to the latent space. We determine the update direction of $x_{t-1}$
+            as a difference between the moved depth estimate and $x_{t-1}$ scaled by a 
+            time $t$ dependent factor. Lastly, to retrieve the metric depth, we rescale and shift
+            the final depth prediction by minimizing the square error with respect to the sparse depth condition.
+            Note, that the image below depicts $\mathcal{E}$, $\mathcal{D}$ twice but one instance of each is 
+            run in reality.
+          </p>
+          <img src="./static/images/architecture-updated-small.png"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Animation</h2>
+    <div class="content has-text-justified">
+      <p>
+        We visualize progression of depth estimation in 50 diffusion steps for two samples, one from 
+        <a href="https://cs.nyu.edu/~fergus/datasets/nyu_depth_v2.html">NYUv2</a> and one from 
+        <a href="https://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_completion">KITTI</a> 
+        dataset. The first rows in the figures display an RGB image and sparse depth condition. In the second
+        row on the left there is $\hat{x}_0$ after modification by the steering condition, which gives
+        us the steering direction. It can be observed, that the shape of the steering condition is very apparent
+        initially and progressively fades away with each diffusion step. This means that the difference
+        between $\hat{x}_0$ and the steering condition decreases (the visualization
+        does not take the steering factor into consideration). On the right side we can observe how
+        $\hat{x}_0$ evolves over the diffusion steps and becomes the final depth estimate.
+      </p>
+      <p>
+        Use the sliders below the figures to move between the diffusion steps ($t$ descreasing from 
+        left to right).
+      </p>
+    </div>
+    <h3 class="title is-4 has-text-centered">NYUv2</h3>
+    <div class="columns is-vcentered interpolation-panel">
+      <div class="column">
+        <div class="columns is-multiline is-mobile is-gapless">
+          <div class="column is-half">
+            <img src="./static/images/nyu-1001/1001_rgb.png">
+          </div>
+          <div class="column is-half">
+            <img src="./static/images/nyu-1001/1001_lidar_001.png">
+          </div>
+          <div class="column is-full">
+            <div id="interpolation-image-wrapper-nyu">Loading...</div>
+            <input class="slider is-fullwidth is-large is-info" id="interpolation-slider-nyu" step="1" min="0" max="100" value="0" type="range">
+            <p>
+              You are looking at RGB image (top left), sparse depth condition (top right), $\hat{x}_0$ steered by the 
+              sparse condition (bottom left), $\hat{x}_0$ (bottom right). Move the slider to see how the bottom row 
+              changes over the 50 diffusion steps.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3 class="title is-4 has-text-centered">KITTI</h3>
+    <div class="columns is-vcentered interpolation-panel">
+      <div class="column">
+        <div class="columns is-multiline is-mobile is-gapless">
+          <div class="column is-half">
+            <img src="./static/images/kitti/2011_09_26_drive_0002_sync_image_02_0000000012_rgb.png">
+          </div>
+          <div class="column is-half">
+            <img src="./static/images/kitti/2011_09_26_drive_0002_sync_image_02_0000000012_lidar_001.png">
+          </div>
+          <div class="column is-full">
+            <div id="interpolation-image-wrapper-kitti">Loading...</div>
+            <input class="slider is-fullwidth is-large is-info" id="interpolation-slider-kitti" step="1" min="0" max="100" value="0" type="range">
+            <p>
+              You are looking at RGB image (top left), sparse depth condition (top right), $\hat{x}_0$ steered by the 
+              sparse condition (bottom left), $\hat{x}_0$ (bottom right). Move the slider to see how the bottom row 
+              changes over the 50 diffusion steps.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3 has-text-centered">Related Links</h2>
+        <div class="content has-text-justified">
+          <p>
+            <a href="https://marigoldmonodepth.github.io">Marigold</a> is a diffusion based method for 
+            depth estimantion that inspired our work.
+          </p>
+          <p>
+            <a href="https://marigolddepthcompletion.github.io">Marigold-DC</a> depth completion method 
+            based on Marigold characteristic by its ability to guide the diffusion utilizing depth 
+            conditions with wide ranges of sparsity.
+          </p>
+          <p>
+            <a href="https://www.robetarme-project.eu">Horizon Europe project RoBétArmé</a> funding and
+            supporting this work.
+          </p>  
+          <p>
+            Check out other work from our lab <a href="https://dtu-pas.github.io/RumexWeeds/">Rumex Weeds</a>,
+            <a href="https://github.com/DTU-PAS/ConRebSeg">ConRebSeg</a>, <a href="https://github.com/DTU-PAS/awesome-dynn-for-cv">Awesome DyNNs</a> 
+            and our <a href="https://github.com/DTU-PAS">GitHub</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title has-text-centered">BibTeX</h2>
+    <pre><code>@misc{steeredmarigold,
+      title={SteeredMarigold: Steering Diffusion Towards Depth Completion of Largely Incomplete Depth Maps}, 
+      author={Jakub Gregorek and Lazaros Nalpantidis},
+      year={2024},
+      eprint={2409.10202},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2409.10202}, 
+}</code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is based on <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> and licensed under a 
+            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 
+            International License</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
